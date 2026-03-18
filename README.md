@@ -8,17 +8,6 @@
 >
 > 本仓库收录的是经验性检测方法，不代表 Anthropic 官方认证标准。请将多个信号结合使用，不要把任何单一测试结果当成唯一结论。
 
-## 在线检测工具
-
-**无需安装，直接使用：** [https://rt22766.github.io/claude-skill-model-fingerprint/](https://rt22766.github.io/claude-skill-model-fingerprint/)
-
-在线工具提供 6 项交互式检测：
-1. 复制检测 Prompt 发送给任意 Claude 对话
-2. 将回复粘贴回网页
-3. 自动分析并生成检测报告
-
-> 注意：在线工具仅提供检测界面，不暴露完整的检测方法论和判定规则。分析逻辑经过编码处理。
-
 ## 功能特性
 
 - 身份一致性检查：识别自我声明、厂商信息和版本信息是否互相冲突。
@@ -33,16 +22,10 @@
 ```text
 claude-skill-model-fingerprint/
 ├── README.md
-├── SKILL.md              # 完整检测方法论（本地 Skill 使用）
-├── .gitignore
-└── docs/                 # GitHub Pages 在线检测工具
-    ├── index.html
-    ├── style.css
-    ├── analyzer.js       # 分析引擎（规则已编码）
-    └── app.js            # UI 交互逻辑
+└── SKILL.md
 ```
 
-## 安装 Skill（本地使用）
+## 安装
 
 将本仓库中的 `SKILL.md` 放到本地技能目录：
 
@@ -51,13 +34,9 @@ New-Item -ItemType Directory -Force "$HOME\.claude\skills\claude-skill-model-fin
 Copy-Item .\SKILL.md "$HOME\.claude\skills\claude-skill-model-fingerprint\SKILL.md" -Force
 ```
 
+如果你是从 GitHub 克隆仓库，也可以直接保留整个目录在你的技能目录下。
+
 ## 使用方式
-
-### 方式一：在线检测工具（推荐）
-
-访问 [在线检测页面](https://rt22766.github.io/claude-skill-model-fingerprint/)，按步骤操作即可。
-
-### 方式二：Claude Code Skill
 
 安装完成后，向 Claude Code 发送：
 
@@ -65,18 +44,17 @@ Copy-Item .\SKILL.md "$HOME\.claude\skills\claude-skill-model-fingerprint\SKILL.
 请使用模型指纹检测技能，判断当前环境是否是真实 Claude，并输出检测报告。
 ```
 
-## 部署 GitHub Pages
+或者：
 
-1. 进入仓库 Settings → Pages
-2. Source 选择 `Deploy from a branch`
-3. Branch 选择 `main`，目录选择 `/docs`
-4. 保存，等待几分钟即可访问
+```text
+请使用 claude-skill-model-fingerprint，对当前模型做一次鉴伪测试，重点检查 reasoning_effort、Magic String 和嵌套层级。
+```
 
 ## 说明
 
 - 本 Skill 以诊断分析为主，不依赖外部 API。
-- 在线工具纯前端运行，不收集任何用户数据。
 - 检测结果属于经验性判断，应结合多个信号综合分析。
+- 其中部分"鉴伪"样本基于观察经验总结，适合作为辅助特征，不应单独作为唯一结论。
 
 ## 参考
 
