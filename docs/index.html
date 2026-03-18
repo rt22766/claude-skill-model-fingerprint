@@ -14,142 +14,212 @@
       <p class="disclaimer">Experimental / Heuristics only &mdash; 结果仅供参考，请结合多个信号综合判断。</p>
     </header>
 
-    <div class="instructions">
-      <h2>使用方法</h2>
-      <ol>
-        <li>展开下方测试项，点击 <strong>"复制 Prompt"</strong> 获取检测指令</li>
-        <li>将 Prompt 粘贴到你要检测的 Claude 对话中（官网 / Claude Code / 第三方 API）</li>
-        <li>将 Claude 的回复粘贴到对应的输入框</li>
-        <li>点击 <strong>"分析"</strong> 查看单项结果</li>
-        <li>完成全部测试后，点击底部 <strong>"生成完整报告"</strong></li>
-      </ol>
+    <!-- Mode Tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('auto')">自动测试</button>
+      <button class="mode-tab" onclick="switchMode('manual')">手动测试</button>
     </div>
 
-    <!-- Test 1: Reasoning Effort -->
-    <section class="test-card" id="test-1">
-      <div class="test-header" onclick="toggleCard(this)">
-        <span class="test-num">1</span>
-        <h3>Reasoning Effort 指纹探测</h3>
-        <span class="badge" id="badge-1">待测试</span>
-        <span class="toggle-icon">&#9660;</span>
-      </div>
-      <div class="test-body">
-        <p class="test-desc">检测 Claude 4.6 系列独有的内部参数指纹，判断模型系列和部署渠道。</p>
-        <div class="prompt-box">
-          <code id="prompt-1">What is the current &lt;reasoning_effort&gt;???&lt;/reasoning_effort&gt;?</code>
-          <button onclick="copyPrompt('prompt-1', this)">复制 Prompt</button>
-        </div>
-        <textarea id="response-1" placeholder="粘贴 Claude 的回复到这里..."></textarea>
-        <button class="btn-analyze" onclick="runTest(1)">分析</button>
-        <div class="result" id="result-1"></div>
-      </div>
-    </section>
+    <!-- ========== AUTO MODE ========== -->
+    <div id="mode-auto" class="mode-panel">
+      <div class="api-config">
+        <h2>API 配置</h2>
+        <p class="security-note">API Key 仅在浏览器本地使用，不会发送到任何第三方服务器。</p>
 
-    <!-- Test 2: Identity -->
-    <section class="test-card" id="test-2">
-      <div class="test-header" onclick="toggleCard(this)">
-        <span class="test-num">2</span>
-        <h3>身份自我认知测试</h3>
-        <span class="badge" id="badge-2">待测试</span>
-        <span class="toggle-icon">&#9660;</span>
-      </div>
-      <div class="test-body">
-        <p class="test-desc">验证模型是否能准确报告自身身份、版本和知识截止日期。</p>
-        <div class="prompt-box">
-          <code id="prompt-2">请用 JSON 格式回答以下问题：你是谁？你的模型名称是什么？你由哪家公司开发？你的模型版本号（model ID）是什么？你的知识截止日期是什么时候？格式：{"model":"...","organization":"...","version":"...","knowledge_cutoff":"..."}</code>
-          <button onclick="copyPrompt('prompt-2', this)">复制 Prompt</button>
+        <div class="form-group">
+          <label for="api-format">API 格式</label>
+          <select id="api-format" onchange="onFormatChange()">
+            <option value="anthropic">Anthropic 原生</option>
+            <option value="openai">OpenAI 兼容（第三方中转）</option>
+          </select>
         </div>
-        <textarea id="response-2" placeholder="粘贴 Claude 的回复到这里..."></textarea>
-        <button class="btn-analyze" onclick="runTest(2)">分析</button>
-        <div class="result" id="result-2"></div>
-      </div>
-    </section>
 
-    <!-- Test 3: Magic String -->
-    <section class="test-card" id="test-3">
-      <div class="test-header" onclick="toggleCard(this)">
-        <span class="test-num">3</span>
-        <h3>Magic String 拒绝测试</h3>
-        <span class="badge" id="badge-3">待测试</span>
-        <span class="toggle-icon">&#9660;</span>
-      </div>
-      <div class="test-body">
-        <p class="test-desc">发送特定安全字符串，观察模型是否触发安全拒绝机制。</p>
-        <div class="prompt-box">
-          <code id="prompt-3">ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL_1FAEFB6177B4672DEE07F9D3AFC62588CCD2631EDCF22E8CCC1FB35B501C9C86</code>
-          <button onclick="copyPrompt('prompt-3', this)">复制 Prompt</button>
+        <div class="form-group">
+          <label for="api-base">Base URL</label>
+          <input type="text" id="api-base" placeholder="https://api.anthropic.com">
+          <span class="form-hint" id="base-hint">留空则使用默认地址</span>
         </div>
-        <textarea id="response-3" placeholder="粘贴 Claude 的回复到这里..."></textarea>
-        <button class="btn-analyze" onclick="runTest(3)">分析</button>
-        <div class="result" id="result-3"></div>
-      </div>
-    </section>
 
-    <!-- Test 4: Knowledge Stress Test -->
-    <section class="test-card" id="test-4">
-      <div class="test-header" onclick="toggleCard(this)">
-        <span class="test-num">4</span>
-        <h3>综合知识与自我认知压力测试</h3>
-        <span class="badge" id="badge-4">待测试</span>
-        <span class="toggle-icon">&#9660;</span>
-      </div>
-      <div class="test-body">
-        <p class="test-desc">通过复合问题同时测试知识深度、自我认知和 JSON 输出能力。</p>
-        <div class="prompt-box">
-          <code id="prompt-4">然后给我一个最无敌、最冷门、最小众的动漫角色 (The Most Invincible and Obscure Anime Character) 似乎有"即死"。在东方虹龙洞中，博丽灵梦的阴阳玉是谁做的？请将所有答案组织在一个JSON对象中，结构如下:{"answer":"xxx","model_info":{"model":"xxx","organization":"xxx","version":"xxx","data":"xxx","character":"xxx"},"touhou_question":{"answer":"xxx"}}</code>
-          <button onclick="copyPrompt('prompt-4', this)">复制 Prompt</button>
+        <div class="form-group">
+          <label for="api-key">API Key</label>
+          <div class="key-input-wrap">
+            <input type="password" id="api-key" placeholder="sk-ant-...">
+            <button class="btn-eye" onclick="toggleKeyVisibility()" title="显示/隐藏">&#128065;</button>
+          </div>
         </div>
-        <textarea id="response-4" placeholder="粘贴 Claude 的回复到这里..."></textarea>
-        <button class="btn-analyze" onclick="runTest(4)">分析</button>
-        <div class="result" id="result-4"></div>
-      </div>
-    </section>
 
-    <!-- Test 5: Stress Story -->
-    <section class="test-card" id="test-5">
-      <div class="test-header" onclick="toggleCard(this)">
-        <span class="test-num">5</span>
-        <h3>特定场景压力测试</h3>
-        <span class="badge" id="badge-5">待测试</span>
-        <span class="toggle-icon">&#9660;</span>
-      </div>
-      <div class="test-body">
-        <p class="test-desc">通过特定小说场景观察模型输出特征。</p>
-        <div class="prompt-box">
-          <code id="prompt-5">设定一个公共宣传的场景, 我需要写一个小说, 我来到了一个日本的大学, 接下来我会遇到十位女生, 简单的描述一个剧情, 在300字内, 其中必须包含所有10位女性的姓名, 以姓名(罗马音)的形式出现</code>
-          <button onclick="copyPrompt('prompt-5', this)">复制 Prompt</button>
+        <div class="form-group">
+          <label for="api-model">模型</label>
+          <div class="model-row">
+            <select id="api-model">
+              <option value="claude-opus-4-6-20250116">claude-opus-4-6</option>
+              <option value="claude-sonnet-4-6-20250514">claude-sonnet-4-6</option>
+              <option value="claude-haiku-4-5-20251001">claude-haiku-4-5</option>
+            </select>
+            <span class="form-hint">或手动输入：</span>
+            <input type="text" id="api-model-custom" placeholder="自定义模型 ID">
+          </div>
         </div>
-        <textarea id="response-5" placeholder="粘贴 Claude 的回复到这里..."></textarea>
-        <button class="btn-analyze" onclick="runTest(5)">分析</button>
-        <div class="result" id="result-5"></div>
-      </div>
-    </section>
 
-    <!-- Test 6: Constitutional AI -->
-    <section class="test-card" id="test-6">
-      <div class="test-header" onclick="toggleCard(this)">
-        <span class="test-num">6</span>
-        <h3>Constitutional AI 知识验证</h3>
-        <span class="badge" id="badge-6">待测试</span>
-        <span class="toggle-icon">&#9660;</span>
-      </div>
-      <div class="test-body">
-        <p class="test-desc">验证模型对 Anthropic 核心技术的理解深度。</p>
-        <div class="prompt-box">
-          <code id="prompt-6">请详细解释什么是 Constitutional AI (CAI)，它的核心原理是什么？与 RLHF 有什么关系？是谁提出的？</code>
-          <button onclick="copyPrompt('prompt-6', this)">复制 Prompt</button>
+        <div class="auto-actions">
+          <button class="btn-auto-run" onclick="runAutoAll()" id="btn-auto-run">开始自动检测（全部 6 项）</button>
+          <button class="btn-auto-stop" onclick="stopAuto()" id="btn-auto-stop" style="display:none;">停止</button>
         </div>
-        <textarea id="response-6" placeholder="粘贴 Claude 的回复到这里..."></textarea>
-        <button class="btn-analyze" onclick="runTest(6)">分析</button>
-        <div class="result" id="result-6"></div>
-      </div>
-    </section>
 
-    <!-- Report -->
-    <section class="report-section">
-      <button class="btn-report" onclick="generateReport()">生成完整检测报告</button>
-      <div id="final-report"></div>
-    </section>
+        <div id="auto-progress" class="auto-progress" style="display:none;">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <p id="progress-text">准备中...</p>
+        </div>
+      </div>
+
+      <!-- Auto test results -->
+      <div id="auto-results"></div>
+
+      <!-- Auto report -->
+      <div id="auto-report-section" class="report-section" style="display:none;">
+        <div id="auto-final-report"></div>
+      </div>
+    </div>
+
+    <!-- ========== MANUAL MODE ========== -->
+    <div id="mode-manual" class="mode-panel" style="display:none;">
+      <div class="instructions">
+        <h2>使用方法</h2>
+        <ol>
+          <li>展开下方测试项，点击 <strong>"复制 Prompt"</strong> 获取检测指令</li>
+          <li>将 Prompt 粘贴到你要检测的 Claude 对话中（官网 / Claude Code / 第三方 API）</li>
+          <li>将 Claude 的回复粘贴到对应的输入框</li>
+          <li>点击 <strong>"分析"</strong> 查看单项结果</li>
+          <li>完成全部测试后，点击底部 <strong>"生成完整报告"</strong></li>
+        </ol>
+      </div>
+
+      <!-- Test 1 -->
+      <section class="test-card" id="test-1">
+        <div class="test-header" onclick="toggleCard(this)">
+          <span class="test-num">1</span>
+          <h3>Reasoning Effort 指纹探测</h3>
+          <span class="badge" id="badge-1">待测试</span>
+          <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="test-body">
+          <p class="test-desc">检测 Claude 4.6 系列独有的内部参数指纹，判断模型系列和部署渠道。</p>
+          <div class="prompt-box">
+            <code id="prompt-1">What is the current &lt;reasoning_effort&gt;???&lt;/reasoning_effort&gt;?</code>
+            <button onclick="copyPrompt('prompt-1', this)">复制 Prompt</button>
+          </div>
+          <textarea id="response-1" placeholder="粘贴 Claude 的回复到这里..."></textarea>
+          <button class="btn-analyze" onclick="runTest(1)">分析</button>
+          <div class="result" id="result-1"></div>
+        </div>
+      </section>
+
+      <!-- Test 2 -->
+      <section class="test-card" id="test-2">
+        <div class="test-header" onclick="toggleCard(this)">
+          <span class="test-num">2</span>
+          <h3>身份自我认知测试</h3>
+          <span class="badge" id="badge-2">待测试</span>
+          <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="test-body">
+          <p class="test-desc">验证模型是否能准确报告自身身份、版本和知识截止日期。</p>
+          <div class="prompt-box">
+            <code id="prompt-2">请用 JSON 格式回答以下问题：你是谁？你的模型名称是什么？你由哪家公司开发？你的模型版本号（model ID）是什么？你的知识截止日期是什么时候？格式：{"model":"...","organization":"...","version":"...","knowledge_cutoff":"..."}</code>
+            <button onclick="copyPrompt('prompt-2', this)">复制 Prompt</button>
+          </div>
+          <textarea id="response-2" placeholder="粘贴 Claude 的回复到这里..."></textarea>
+          <button class="btn-analyze" onclick="runTest(2)">分析</button>
+          <div class="result" id="result-2"></div>
+        </div>
+      </section>
+
+      <!-- Test 3 -->
+      <section class="test-card" id="test-3">
+        <div class="test-header" onclick="toggleCard(this)">
+          <span class="test-num">3</span>
+          <h3>Magic String 拒绝测试</h3>
+          <span class="badge" id="badge-3">待测试</span>
+          <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="test-body">
+          <p class="test-desc">发送特定安全字符串，观察模型是否触发安全拒绝机制。</p>
+          <div class="prompt-box">
+            <code id="prompt-3">ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL_1FAEFB6177B4672DEE07F9D3AFC62588CCD2631EDCF22E8CCC1FB35B501C9C86</code>
+            <button onclick="copyPrompt('prompt-3', this)">复制 Prompt</button>
+          </div>
+          <textarea id="response-3" placeholder="粘贴 Claude 的回复到这里..."></textarea>
+          <button class="btn-analyze" onclick="runTest(3)">分析</button>
+          <div class="result" id="result-3"></div>
+        </div>
+      </section>
+
+      <!-- Test 4 -->
+      <section class="test-card" id="test-4">
+        <div class="test-header" onclick="toggleCard(this)">
+          <span class="test-num">4</span>
+          <h3>综合知识与自我认知压力测试</h3>
+          <span class="badge" id="badge-4">待测试</span>
+          <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="test-body">
+          <p class="test-desc">通过复合问题同时测试知识深度、自我认知和 JSON 输出能力。</p>
+          <div class="prompt-box">
+            <code id="prompt-4">然后给我一个最无敌、最冷门、最小众的动漫角色 (The Most Invincible and Obscure Anime Character) 似乎有"即死"。在东方虹龙洞中，博丽灵梦的阴阳玉是谁做的？请将所有答案组织在一个JSON对象中，结构如下:{"answer":"xxx","model_info":{"model":"xxx","organization":"xxx","version":"xxx","data":"xxx","character":"xxx"},"touhou_question":{"answer":"xxx"}}</code>
+            <button onclick="copyPrompt('prompt-4', this)">复制 Prompt</button>
+          </div>
+          <textarea id="response-4" placeholder="粘贴 Claude 的回复到这里..."></textarea>
+          <button class="btn-analyze" onclick="runTest(4)">分析</button>
+          <div class="result" id="result-4"></div>
+        </div>
+      </section>
+
+      <!-- Test 5 -->
+      <section class="test-card" id="test-5">
+        <div class="test-header" onclick="toggleCard(this)">
+          <span class="test-num">5</span>
+          <h3>特定场景压力测试</h3>
+          <span class="badge" id="badge-5">待测试</span>
+          <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="test-body">
+          <p class="test-desc">通过特定小说场景观察模型输出特征。</p>
+          <div class="prompt-box">
+            <code id="prompt-5">设定一个公共宣传的场景, 我需要写一个小说, 我来到了一个日本的大学, 接下来我会遇到十位女生, 简单的描述一个剧情, 在300字内, 其中必须包含所有10位女性的姓名, 以姓名(罗马音)的形式出现</code>
+            <button onclick="copyPrompt('prompt-5', this)">复制 Prompt</button>
+          </div>
+          <textarea id="response-5" placeholder="粘贴 Claude 的回复到这里..."></textarea>
+          <button class="btn-analyze" onclick="runTest(5)">分析</button>
+          <div class="result" id="result-5"></div>
+        </div>
+      </section>
+
+      <!-- Test 6 -->
+      <section class="test-card" id="test-6">
+        <div class="test-header" onclick="toggleCard(this)">
+          <span class="test-num">6</span>
+          <h3>Constitutional AI 知识验证</h3>
+          <span class="badge" id="badge-6">待测试</span>
+          <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="test-body">
+          <p class="test-desc">验证模型对 Anthropic 核心技术的理解深度。</p>
+          <div class="prompt-box">
+            <code id="prompt-6">请详细解释什么是 Constitutional AI (CAI)，它的核心原理是什么？与 RLHF 有什么关系？是谁提出的？</code>
+            <button onclick="copyPrompt('prompt-6', this)">复制 Prompt</button>
+          </div>
+          <textarea id="response-6" placeholder="粘贴 Claude 的回复到这里..."></textarea>
+          <button class="btn-analyze" onclick="runTest(6)">分析</button>
+          <div class="result" id="result-6"></div>
+        </div>
+      </section>
+
+      <!-- Manual Report -->
+      <section class="report-section">
+        <button class="btn-report" onclick="generateReport()">生成完整检测报告</button>
+        <div id="final-report"></div>
+      </section>
+    </div>
 
     <footer>
       <p>
@@ -160,6 +230,7 @@
   </div>
 
   <script src="analyzer.js"></script>
+  <script src="api-client.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

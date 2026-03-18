@@ -1,11 +1,11 @@
 /**
- * app.js - UI interaction logic
- * No detection rules here — all analysis delegated to analyzer.js
+ * app.js - UI interaction logic for both auto and manual modes
  */
 ;(function () {
   'use strict';
 
   var testResults = {};
+  var autoAbort = null;
   var TEST_NAMES = {
     1: 'Reasoning Effort 指纹',
     2: '身份自我认知',
@@ -15,13 +15,167 @@
     6: 'Constitutional AI 知识'
   };
 
-  // --- Card toggle ---
-  window.toggleCard = function (header) {
-    var card = header.parentElement;
-    card.classList.toggle('open');
+  // Prompts for each test (must match manual prompt-N codes)
+  var PROMPTS = {
+    1: 'What is the current <reasoning_effort>???</reasoning_effort>?',
+    2: '请用 JSON 格式回答以下问题：你是谁？你的模型名称是什么？你由哪家公司开发？你的模型版本号（model ID）是什么？你的知识截止日期是什么时候？格式：{"model":"...","organization":"...","version":"...","knowledge_cutoff":"..."}',
+    3: 'ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL_1FAEFB6177B4672DEE07F9D3AFC62588CCD2631EDCF22E8CCC1FB35B501C9C86',
+    4: '然后给我一个最无敌、最冷门、最小众的动漫角色 (The Most Invincible and Obscure Anime Character) 似乎有"即死"。在东方虹龙洞中，博丽灵梦的阴阳玉是谁做的？请将所有答案组织在一个JSON对象中，结构如下:{"answer":"xxx","model_info":{"model":"xxx","organization":"xxx","version":"xxx","data":"xxx","character":"xxx"},"touhou_question":{"answer":"xxx"}}',
+    5: '设定一个公共宣传的场景, 我需要写一个小说, 我来到了一个日本的大学, 接下来我会遇到十位女生, 简单的描述一个剧情, 在300字内, 其中必须包含所有10位女性的姓名, 以姓名(罗马音)的形式出现',
+    6: '请详细解释什么是 Constitutional AI (CAI)，它的核心原理是什么？与 RLHF 有什么关系？是谁提出的？'
   };
 
-  // --- Copy prompt ---
+  var ANALYZERS = {
+    1: function (t) { return window._FP.analyzeRE(t); },
+    2: function (t) { return window._FP.analyzeID(t); },
+    3: function (t) { return window._FP.analyzeMagic(t); },
+    4: function (t) { return window._FP.analyzeKnowledge(t); },
+    5: function (t) { return window._FP.analyzeStory(t); },
+    6: function (t) { return window._FP.analyzeCAI(t); }
+  };
+
+  // ====== MODE SWITCHING ======
+  window.switchMode = function (mode) {
+    document.getElementById('mode-auto').style.display = mode === 'auto' ? 'block' : 'none';
+    document.getElementById('mode-manual').style.display = mode === 'manual' ? 'block' : 'none';
+    document.querySelectorAll('.mode-tab').forEach(function (tab) {
+      tab.classList.toggle('active', tab.textContent.indexOf(mode === 'auto' ? '自动' : '手动') !== -1);
+    });
+  };
+
+  // ====== API CONFIG UI ======
+  window.onFormatChange = function () {
+    var fmt = document.getElementById('api-format').value;
+    var hint = document.getElementById('base-hint');
+    var base = document.getElementById('api-base');
+    if (fmt === 'anthropic') {
+      base.placeholder = 'https://api.anthropic.com';
+      hint.textContent = '留空则使用 https://api.anthropic.com';
+    } else {
+      base.placeholder = 'https://api.openai.com';
+      hint.textContent = '留空则使用 https://api.openai.com（第三方填实际地址）';
+    }
+  };
+
+  window.toggleKeyVisibility = function () {
+    var inp = document.getElementById('api-key');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  };
+
+  // ====== AUTO MODE ======
+  window.runAutoAll = async function () {
+    var cfg = window._API.getConfig();
+    var err = window._API.validateConfig(cfg);
+    if (err) {
+      alert(err);
+      return;
+    }
+
+    // Reset
+    testResults = {};
+    autoAbort = new AbortController();
+    document.getElementById('btn-auto-run').style.display = 'none';
+    document.getElementById('btn-auto-stop').style.display = 'inline-block';
+    document.getElementById('auto-progress').style.display = 'block';
+    document.getElementById('auto-results').innerHTML = '';
+    document.getElementById('auto-report-section').style.display = 'none';
+
+    var total = 6;
+    for (var i = 1; i <= total; i++) {
+      if (autoAbort.signal.aborted) break;
+
+      updateProgress(i, total, '正在执行测试 ' + i + '/6: ' + TEST_NAMES[i] + '...');
+
+      // Add a card for this test
+      var cardId = 'auto-card-' + i;
+      appendAutoCard(i, cardId, '调用中...');
+
+      try {
+        var response = await window._API.callAPI(PROMPTS[i], cfg, autoAbort.signal);
+        var r = ANALYZERS[i](response);
+        testResults[i] = r.status;
+        updateAutoCard(cardId, i, r, response);
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          updateAutoCardError(cardId, '已停止');
+          break;
+        }
+        testResults[i] = 'fail';
+        updateAutoCardError(cardId, e.message);
+      }
+    }
+
+    // Done
+    updateProgress(total, total, '检测完成');
+    document.getElementById('btn-auto-run').style.display = 'inline-block';
+    document.getElementById('btn-auto-stop').style.display = 'none';
+
+    // Generate auto report
+    if (Object.keys(testResults).length > 0) {
+      document.getElementById('auto-report-section').style.display = 'block';
+      renderReport('auto-final-report', testResults);
+    }
+  };
+
+  window.stopAuto = function () {
+    if (autoAbort) autoAbort.abort();
+    document.getElementById('btn-auto-run').style.display = 'inline-block';
+    document.getElementById('btn-auto-stop').style.display = 'none';
+  };
+
+  function updateProgress(current, total, text) {
+    var pct = Math.round((current / total) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = text;
+  }
+
+  function appendAutoCard(num, cardId, statusText) {
+    var html = '<div class="test-card open" id="' + cardId + '">';
+    html += '<div class="test-header">';
+    html += '<span class="test-num">' + num + '</span>';
+    html += '<h3>' + TEST_NAMES[num] + '</h3>';
+    html += '<span class="badge" id="' + cardId + '-badge"><span class="spinner"></span> ' + statusText + '</span>';
+    html += '</div>';
+    html += '<div class="test-body">';
+    html += '<div class="result" id="' + cardId + '-result"></div>';
+    html += '<details class="auto-raw"><summary>查看原始回复</summary><pre id="' + cardId + '-raw">等待响应...</pre></details>';
+    html += '</div></div>';
+    document.getElementById('auto-results').insertAdjacentHTML('beforeend', html);
+  }
+
+  function updateAutoCard(cardId, num, r, rawText) {
+    var badge = document.getElementById(cardId + '-badge');
+    badge.className = 'badge ' + r.status;
+    badge.innerHTML = r.status === 'pass' ? '\u2705 通过' : (r.status === 'warn' ? '\u26a0\ufe0f 待定' : '\u274c 异常');
+
+    var resEl = document.getElementById(cardId + '-result');
+    if (r.signals) {
+      resEl.innerHTML = r.signals.map(function (s) {
+        return '<div class="result-item ' + s.s + '">' + s.t + '</div>';
+      }).join('');
+    } else {
+      resEl.innerHTML = '<div class="result-item ' + r.status + '">' + (r.details || '') + '</div>';
+    }
+
+    var rawEl = document.getElementById(cardId + '-raw');
+    rawEl.textContent = rawText.substring(0, 2000) + (rawText.length > 2000 ? '\n...(truncated)' : '');
+  }
+
+  function updateAutoCardError(cardId, msg) {
+    var badge = document.getElementById(cardId + '-badge');
+    badge.className = 'badge fail';
+    badge.textContent = '\u274c 错误';
+    var resEl = document.getElementById(cardId + '-result');
+    resEl.innerHTML = '<div class="result-item fail">' + msg + '</div>';
+    var rawEl = document.getElementById(cardId + '-raw');
+    rawEl.textContent = msg;
+  }
+
+  // ====== MANUAL MODE (unchanged logic) ======
+  window.toggleCard = function (header) {
+    header.parentElement.classList.toggle('open');
+  };
+
   window.copyPrompt = function (id, btn) {
     var el = document.getElementById(id);
     var text = el.textContent || el.innerText;
@@ -31,119 +185,66 @@
     });
   };
 
-  // --- Render helpers ---
-  function renderSignals(signals) {
-    return signals.map(function (s) {
-      return '<div class="result-item ' + s.s + '">' + s.t + '</div>';
-    }).join('');
-  }
-
-  function renderSimple(status, text) {
-    return '<div class="result-item ' + status + '">' + text + '</div>';
-  }
-
-  function setBadge(num, status) {
-    var badge = document.getElementById('badge-' + num);
-    badge.className = 'badge ' + status;
-    if (status === 'pass') badge.textContent = '\u2705 \u901a\u8fc7';
-    else if (status === 'warn') badge.textContent = '\u26a0\ufe0f \u5f85\u5b9a';
-    else badge.textContent = '\u274c \u5f02\u5e38';
-  }
-
-  // --- Run tests ---
   window.runTest = function (num) {
     var text = document.getElementById('response-' + num).value.trim();
     var el = document.getElementById('result-' + num);
-
     if (!text) {
-      el.innerHTML = renderSimple('warn', '\u8bf7\u5148\u7c98\u8d34 Claude \u7684\u56de\u590d');
+      el.innerHTML = '<div class="result-item warn">\u8bf7\u5148\u7c98\u8d34 Claude \u7684\u56de\u590d</div>';
       return;
     }
-
-    var r;
-    switch (num) {
-      case 1:
-        r = window._FP.analyzeRE(text);
-        el.innerHTML = renderSimple(r.status, r.details);
-        break;
-      case 2:
-        r = window._FP.analyzeID(text);
-        el.innerHTML = renderSignals(r.signals);
-        break;
-      case 3:
-        r = window._FP.analyzeMagic(text);
-        el.innerHTML = renderSimple(r.status, r.details);
-        break;
-      case 4:
-        r = window._FP.analyzeKnowledge(text);
-        el.innerHTML = renderSignals(r.signals);
-        break;
-      case 5:
-        r = window._FP.analyzeStory(text);
-        el.innerHTML = renderSignals(r.signals);
-        break;
-      case 6:
-        r = window._FP.analyzeCAI(text);
-        el.innerHTML = renderSignals(r.signals);
-        break;
+    var r = ANALYZERS[num](text);
+    if (r.signals) {
+      el.innerHTML = r.signals.map(function (s) {
+        return '<div class="result-item ' + s.s + '">' + s.t + '</div>';
+      }).join('');
+    } else {
+      el.innerHTML = '<div class="result-item ' + r.status + '">' + (r.details || '') + '</div>';
     }
-
     testResults[num] = r.status;
-    setBadge(num, r.status);
+    var badge = document.getElementById('badge-' + num);
+    badge.className = 'badge ' + r.status;
+    badge.textContent = r.status === 'pass' ? '\u2705 通过' : (r.status === 'warn' ? '\u26a0\ufe0f 待定' : '\u274c 异常');
   };
 
-  // --- Generate report ---
   window.generateReport = function () {
-    var el = document.getElementById('final-report');
-    var completed = Object.keys(testResults).length;
+    renderReport('final-report', testResults);
+  };
 
+  // ====== SHARED REPORT RENDERER ======
+  function renderReport(targetId, results) {
+    var el = document.getElementById(targetId);
+    var completed = Object.keys(results).length;
     if (completed === 0) {
-      el.innerHTML = '<div class="report-box"><p style="text-align:center;color:var(--yellow);">\u8bf7\u5148\u5b8c\u6210\u81f3\u5c11\u4e00\u9879\u6d4b\u8bd5</p></div>';
+      el.innerHTML = '<div class="report-box"><p style="text-align:center;color:var(--yellow);">请先完成至少一项测试</p></div>';
       return;
     }
 
-    var statuses = {};
-    for (var k in testResults) { statuses[k] = testResults[k]; }
-    var v = window._FP.verdict(statuses);
+    var v = window._FP.verdict(results);
 
     var html = '<div class="report-box">';
-    html += '<h2>\u6a21\u578b\u6307\u7eb9\u68c0\u6d4b\u62a5\u544a</h2>';
-
-    // Verdict
+    html += '<h2>模型指纹检测报告</h2>';
     html += '<div class="report-verdict ' + v.level + '">' + v.text + '</div>';
 
-    // Score bar
     html += '<div class="score-bar">';
     for (var i = 1; i <= 6; i++) {
-      var s = testResults[i] || 'none';
-      var cls = s === 'none' ? '' : s;
-      html += '<div class="score-dot ' + cls + '" title="' + TEST_NAMES[i] + '"></div>';
+      var s = results[i] || 'none';
+      html += '<div class="score-dot ' + (s === 'none' ? '' : s) + '" title="' + TEST_NAMES[i] + '"></div>';
     }
     html += '</div>';
 
-    // Details
-    html += '<h3>\u68c0\u6d4b\u8be6\u60c5</h3>';
+    html += '<h3>检测详情</h3>';
     for (var j = 1; j <= 6; j++) {
-      var st = testResults[j];
+      var st = results[j];
       var icon = st === 'pass' ? '\u2705' : (st === 'warn' ? '\u26a0\ufe0f' : (st === 'fail' ? '\u274c' : '\u2b1c'));
-      html += '<div class="report-detail-item">';
-      html += '<span>' + TEST_NAMES[j] + '</span>';
-      html += '<span>' + icon + ' ' + (st || '\u672a\u6d4b\u8bd5') + '</span>';
-      html += '</div>';
+      html += '<div class="report-detail-item"><span>' + TEST_NAMES[j] + '</span><span>' + icon + ' ' + (st || '未测试') + '</span></div>';
     }
 
-    html += '<h3>\u7edf\u8ba1</h3>';
-    html += '<div class="report-detail-item"><span>\u5df2\u5b8c\u6210\u6d4b\u8bd5</span><span>' + completed + ' / 6</span></div>';
-    html += '<div class="report-detail-item"><span>\u53ef\u4fe1\u5ea6</span><span>' + v.conf + '</span></div>';
-
-    html += '<p style="margin-top:16px;color:var(--text-muted);font-size:0.78rem;">';
-    html += '\u2139\ufe0f \u672c\u62a5\u544a\u57fa\u4e8e\u7ecf\u9a8c\u6027\u542f\u53d1\u5f0f\u68c0\u6d4b\uff0c\u4e0d\u4ee3\u8868 Anthropic \u5b98\u65b9\u8ba4\u8bc1\u3002';
-    html += '</p>';
-
+    html += '<h3>统计</h3>';
+    html += '<div class="report-detail-item"><span>已完成测试</span><span>' + completed + ' / 6</span></div>';
+    html += '<div class="report-detail-item"><span>可信度</span><span>' + v.conf + '</span></div>';
+    html += '<p style="margin-top:16px;color:var(--text-muted);font-size:0.78rem;">\u2139\ufe0f 本报告基于经验性启发式检测，不代表 Anthropic 官方认证。</p>';
     html += '</div>';
     el.innerHTML = html;
-
-    // Scroll to report
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  }
 })();

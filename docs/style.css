@@ -273,9 +273,203 @@ footer {
 footer a { color: var(--accent); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 
+/* Mode Tabs */
+.mode-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mode-tab:hover { background: var(--surface-hover); }
+.mode-tab.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* API Config */
+.api-config {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.api-config h2 { font-size: 1rem; color: var(--accent); margin-bottom: 4px; }
+
+.security-note {
+  font-size: 0.78rem;
+  color: var(--green);
+  margin-bottom: 16px;
+  padding: 6px 10px;
+  background: rgba(63, 185, 80, 0.08);
+  border-radius: 4px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+.key-input-wrap {
+  display: flex;
+  gap: 4px;
+}
+.key-input-wrap input { flex: 1; }
+.btn-eye {
+  background: var(--border);
+  border: none;
+  border-radius: 4px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+.btn-eye:hover { background: var(--surface-hover); }
+
+.model-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.model-row select { flex: 1; min-width: 180px; }
+.model-row input { flex: 1; min-width: 140px; }
+.model-row .form-hint { flex-basis: auto; margin: 0; white-space: nowrap; }
+
+/* Auto actions */
+.auto-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+.btn-auto-run {
+  flex: 1;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-auto-run:hover { opacity: 0.85; }
+.btn-auto-stop {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Progress */
+.auto-progress { margin-top: 16px; }
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  width: 0;
+  transition: width 0.3s;
+}
+#progress-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Auto raw response */
+.auto-raw {
+  margin-top: 8px;
+}
+.auto-raw summary {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.auto-raw pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-top: 6px;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-muted);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 600px) {
   .container { padding: 12px 8px; }
   header h1 { font-size: 1.4rem; }
   .prompt-box { flex-direction: column; }
   .prompt-box button { align-self: flex-end; }
+  .model-row { flex-direction: column; }
+  .model-row .form-hint { display: none; }
 }
