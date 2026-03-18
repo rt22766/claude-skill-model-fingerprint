@@ -127,6 +127,12 @@ body{
   background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.15);
   border-radius:20px;padding:3px 10px;
 }
+.cors-note{
+  font-size:0.78rem;color:var(--yellow);margin-top:12px;
+  padding:10px 14px;border-radius:var(--radius-sm);
+  background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);
+  line-height:1.5;
+}
 
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .form-group--full{grid-column:1/-1}

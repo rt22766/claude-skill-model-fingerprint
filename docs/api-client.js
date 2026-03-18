@@ -2,6 +2,11 @@
  * api-client.js - API call engine
  * Supports Anthropic native format and OpenAI-compatible format.
  * All calls happen in the browser — no backend involved.
+ *
+ * NOTE: Anthropic's official API does not support browser CORS.
+ * Users must either:
+ *   1. Use a CORS-enabled proxy/mirror as Base URL
+ *   2. Use OpenAI-compatible format with a third-party relay that supports CORS
  */
 ;(function () {
   'use strict';
@@ -10,6 +15,8 @@
     anthropic: 'https://api.anthropic.com',
     openai: 'https://api.openai.com'
   };
+
+  var CORS_ERROR_MSG = '[CORS 错误] 浏览器无法直接访问 Anthropic 官方 API（跨域限制）。\n\n请选择以下方式之一：\n1. 填写支持 CORS 的中转/代理地址作为 Base URL\n2. 切换为"OpenAI 兼容"格式并使用第三方中转服务\n\n详情见 GitHub README。';
 
   function getConfig() {
     var fmt = document.getElementById('api-format').value;
@@ -23,23 +30,28 @@
   }
 
   function validateConfig(cfg) {
-    if (!cfg.key) return 'Please enter your API Key';
-    if (!cfg.model) return 'Please select or enter a model';
+    if (!cfg.key) return '请输入 API Key';
+    if (!cfg.model) return '请选择或输入模型名称';
     return null;
   }
 
   /**
    * Send a message to the API and return the text response.
-   * @param {string} prompt - user message
-   * @param {object} cfg - {format, base, key, model}
-   * @param {AbortSignal} signal - optional abort signal
-   * @returns {Promise<string>} response text
    */
   async function callAPI(prompt, cfg, signal) {
-    if (cfg.format === 'anthropic') {
-      return callAnthropic(prompt, cfg, signal);
+    try {
+      if (cfg.format === 'anthropic') {
+        return await callAnthropic(prompt, cfg, signal);
+      }
+      return await callOpenAI(prompt, cfg, signal);
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      // Detect CORS / network errors
+      if (e.message === 'Failed to fetch' || e.message.indexOf('NetworkError') !== -1) {
+        throw new Error(CORS_ERROR_MSG);
+      }
+      throw e;
     }
-    return callOpenAI(prompt, cfg, signal);
   }
 
   async function callAnthropic(prompt, cfg, signal) {
@@ -66,7 +78,6 @@
     }
 
     var data = await resp.json();
-    // Anthropic format: data.content[0].text
     if (data.content && data.content[0] && data.content[0].text) {
       return data.content[0].text;
     }
@@ -95,14 +106,12 @@
     }
 
     var data = await resp.json();
-    // OpenAI format: data.choices[0].message.content
     if (data.choices && data.choices[0] && data.choices[0].message) {
       return data.choices[0].message.content;
     }
     throw new Error('Unexpected response structure');
   }
 
-  // Expose
   window._API = {
     getConfig: getConfig,
     validateConfig: validateConfig,
