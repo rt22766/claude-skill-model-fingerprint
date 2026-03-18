@@ -52,19 +52,6 @@
   };
 
   // ====== API CONFIG UI ======
-  window.onFormatChange = function () {
-    var fmt = document.getElementById('api-format').value;
-    var hint = document.getElementById('base-hint');
-    var base = document.getElementById('api-base');
-    if (fmt === 'anthropic') {
-      base.placeholder = 'https://api.anthropic.com';
-      hint.textContent = '留空则使用 https://api.anthropic.com';
-    } else {
-      base.placeholder = 'https://api.openai.com';
-      hint.textContent = '留空则使用 https://api.openai.com（第三方填实际地址）';
-    }
-  };
-
   window.toggleKeyVisibility = function () {
     var inp = document.getElementById('api-key');
     inp.type = inp.type === 'password' ? 'text' : 'password';

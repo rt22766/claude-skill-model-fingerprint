@@ -46,24 +46,14 @@
           <h2>API 配置</h2>
           <div class="security-pill"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="2" y="5" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4 5V3.5a2 2 0 014 0V5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> 本地运行，不经第三方</div>
         </div>
-        <div class="cors-note">Anthropic 官方 API 不支持浏览器跨域(CORS)。请在 Base URL 填入支持 CORS 的中转地址，或切换"OpenAI 兼容"格式。</div>
+        <div class="cors-note">请填写支持 CORS 的中转地址作为 Base URL（OpenAI 兼容格式 /v1/chat/completions）。</div>
         </div>
 
         <div class="form-grid">
-          <div class="form-group">
-            <label for="api-format">API 格式</label>
-            <div class="select-wrap">
-              <select id="api-format" onchange="onFormatChange()">
-                <option value="anthropic">Anthropic 原生</option>
-                <option value="openai">OpenAI 兼容（第三方中转）</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
+          <div class="form-group form-group--full">
             <label for="api-base">Base URL</label>
-            <input type="text" id="api-base" placeholder="https://api.anthropic.com" class="input">
-            <span class="form-hint" id="base-hint">留空则使用默认地址</span>
+            <input type="text" id="api-base" placeholder="https://your-proxy.example.com" class="input">
+            <span class="form-hint" id="base-hint">填入中转服务地址（会自动拼接 /v1/chat/completions）</span>
           </div>
 
           <div class="form-group form-group--full">
