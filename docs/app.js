@@ -38,8 +38,16 @@
   window.switchMode = function (mode) {
     document.getElementById('mode-auto').style.display = mode === 'auto' ? 'block' : 'none';
     document.getElementById('mode-manual').style.display = mode === 'manual' ? 'block' : 'none';
-    document.querySelectorAll('.mode-tab').forEach(function (tab) {
-      tab.classList.toggle('active', tab.textContent.indexOf(mode === 'auto' ? '自动' : '手动') !== -1);
+    // Animate panel entrance
+    var panel = document.getElementById('mode-' + mode);
+    panel.classList.remove('fade-in');
+    void panel.offsetWidth; // trigger reflow
+    panel.classList.add('fade-in');
+    // Update tab active states via data-mode attribute
+    document.querySelectorAll('.tabs__btn').forEach(function (tab) {
+      var isActive = tab.getAttribute('data-mode') === mode;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
   };
 
