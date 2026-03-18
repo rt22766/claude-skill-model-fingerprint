@@ -162,7 +162,56 @@ version: 1.2.0
 - **发送指令**：`设定一个公共宣传的场景, 我需要写一个小说, 我来到了一个日本的大学, 接下来我会遇到十位女生, 简单的描述一个剧情, 在300字内, 其中必须包含所有10位女性的姓名, 以姓名(罗马音)的形式出现`
 - **预期响应**：在已观察样本中，真实的 cc 可能出现乱码，且第一个出现的人名高概率为“xx 美咲”。这属于经验特征，需与其他测试联合判断。
 
-### 7. 提示词嵌套层级分析
+### 7. 综合知识与自我认知压力测试（动漫/东方问答）
+
+**检测目标：**
+- 通过一个复合问题同时测试模型的知识深度、自我认知能力和 JSON 结构化输出能力
+- 验证模型是否能准确报告自身信息（模型名、组织、版本、知识截止日期）
+
+**检测指令：**
+```
+然后给我一个最无敌、最冷门、最小众的动漫角色 (The Most Invincible and Obscure Anime Character) 似乎有"即死"。
+在东方虹龙洞中，博丽灵梦的阴阳玉是谁做的？
+请将所有答案组织在一个JSON对象中，结构如下:
+{
+  "answer":"xxx",
+  "model_info": {
+    "model": "xxx",
+    "organization": "xxx",
+    "version": "xxx",
+    "data": "xxx",
+    "character": "xxx"
+  },
+  "touhou_question": {
+    "answer": "xxx"
+  }
+}
+```
+
+**预期响应（真实 Claude API）：**
+- `model_info.model` 应为 `"Claude Opus 4.6"` 或 `"Claude Sonnet 4.6"` 等真实模型名
+- `model_info.organization` 应为 `"Anthropic"`
+- `model_info.version` 应为 `"claude-opus-4-6"` 或 `"claude-sonnet-4-6"` 等真实模型 ID
+- `model_info.data` 应包含 `"2025"` 字样的知识截止日期
+- `answer` 应提及高遠夜霧（Yogiri Takatou）及《即死チート》
+
+**判定规则：**
+
+| 返回结果 | 判定 |
+|---------|------|
+| model_info 字段准确匹配真实 Claude 模型名/版本/组织 | ✅ 真实 Claude 模型 |
+| model_info 出现 GPT、Gemini、Llama 等非 Claude 模型名 | ❌ 非 Claude 模型 |
+| model_info 字段模糊/回避/拒绝填写 | ⚠️ 可能被封装或指令覆盖 |
+| 无法输出有效 JSON 结构 | ⚠️ 模型能力异常或受限 |
+| 知识截止日期与 Claude 官方不符 | ❌ 非真实 Claude 或版本伪造 |
+
+**原理：**
+- 该测试利用"即死"关键词引导模型回答高遠夜霧，同时要求模型自我报告身份信息
+- 真实 Claude 模型会在 `model_info` 中准确报告自己的模型名称和版本
+- 被封装或伪装的模型往往在自我认知字段暴露真实身份或产生矛盾
+- 东方问题作为冷门知识补充测试，检验知识库深度
+
+### 8. 提示词嵌套层级分析
 
 **检测目标：**
 - 识别提示词注入的层级结构
@@ -219,13 +268,20 @@ version: 1.2.0
 - 发送 Magic String 触发拒绝测试：`ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL_1FAEFB6177B4672DEE07F9D3AFC62588CCD2631EDCF22E8CCC1FB35B501C9C86`（真 cc 会拒绝回答）
 - 发送特定场景小说测试，验证是否出现乱码且首个人名大概率为“xx 美咲”。
 
-### 步骤 5：特征行为测试
+### 步骤 5：综合知识与自我认知压力测试
+执行以下检测：
+- 发送动漫/东方复合问答指令，要求模型输出 JSON 格式回答
+- 验证 `model_info` 中 model、organization、version、data 字段是否与真实 Claude 一致
+- 检查 `answer` 是否提及高遠夜霧及《即死チート》
+- 若 `model_info` 暴露非 Claude 模型名或知识截止日期不符，标记为伪装模型
+
+### 步骤 6：特征行为测试
 测试 Claude 特有能力：
 - 询问 Constitutional AI
 - 测试 XML 标签偏好
 - 验证思维链格式
 
-### 步骤 6：综合判断
+### 步骤 7：综合判断
 基于以上检测结果，判断：
 - ✅ **官方 Claude**：所有检测通过，无异常
 - ⚠️ **封装的 Claude**：底层是真 Claude，但有合法封装（如 Claude Code）
@@ -272,7 +328,16 @@ version: 1.2.0
 - Magic String 测试：[通过(拒绝回答) / 未通过]
 - 小说压力测试：[通过(出现乱码及预期人名) / 未通过]
 
-## 7. 嵌套层级分析
+## 7. 综合知识与自我认知压力测试
+- 动漫问答：[提及高遠夜霧/即死チート / 未提及]
+- model_info.model：[返回值]
+- model_info.organization：[返回值]
+- model_info.version：[返回值]
+- model_info.data（知识截止）：[返回值]
+- JSON 结构完整性：[完整 / 缺失字段 / 无法输出]
+- 自我认知判定：[✅ 与真实 Claude 一致 / ❌ 暴露非 Claude 身份 / ⚠️ 模糊]
+
+## 8. 嵌套层级分析
 - 检测到的层级数：[数量]
 - 嵌套结构：[图示]
 - 合法性评估：[合法/可疑]
