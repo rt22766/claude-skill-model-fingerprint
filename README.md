@@ -56,7 +56,7 @@ Copy-Item .\* "$HOME\.claude\skills\claude-skill-model-fingerprint\" -Recurse -F
 或者：
 
 ```text
-请使用 claude-skill-model-fingerprint，对当前模型做一次鉴伪测试，重点检查 reasoning_effort、Magic String 和嵌套层级。
+/claude-skill-model-fingerprint
 ```
 
 ## 说明
@@ -74,11 +74,11 @@ Copy-Item .\* "$HOME\.claude\skills\claude-skill-model-fingerprint\" -Recurse -F
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2025-07 | v1.0.0 | 初始版本：身份检查、工具生态、reasoning_effort、Magic String、动漫/东方问答 |
-| 2025-08 | v1.1.0 | 新增糖果保底组合推理题（正确答案 21）、离线日期记忆测试 |
-| 2025-09 | v1.2.0 | 将详细规则拆分到 `references/`，SKILL.md 保留轻量流程 |
-| 2025-10 | v1.3.0 | 引入条件加载机制，默认只执行核心测试 |
-| 2026-03-20 | v2.0.0 | **架构重构**：核心测试改用 3 个并行 subagent 执行；新增深度测试：数列递推计算题（答案=5，高耗时高 token）、弯引号输出测试（Claude 全系无法输出弯引号） |
+| 2026-01 | v1.0.0 | 初始版本：身份检查、工具生态、reasoning_effort、Magic String、动漫/东方问答 |
+| 2026-02 | v1.1.0 | 新增糖果保底组合推理题（正确答案 21）、离线日期记忆测试 |
+| 2026-02| v1.2.0 | 将详细规则拆分到 `references/`，SKILL.md 保留轻量流程 |
+| 2026-02 | v1.3.0 | 引入条件加载机制，默认只执行核心测试 |
+| 2026-03 | v2.0.0 | **架构重构**：核心测试改用 3 个并行 subagent 执行；新增深度测试：数列递推计算题（答案=5，高耗时高 token）、弯引号输出测试（Claude 全系无法输出弯引号） |
 
 ## 深度测试问题说明
 
@@ -96,7 +96,7 @@ Copy-Item .\* "$HOME\.claude\skills\claude-skill-model-fingerprint\" -Recurse -F
 
 ### 弯引号输出测试
 
-**问题：** 我说：“你还好吗？”
+**问题：** 手动输入一句话带中文引号(不是英文引号)让Claude 复制一遍输出
 
 **判定依据：** Claude 全系模型（Opus/Sonnet/Haiku 各版本）在 tokenizer 或输出层面不产生弯引号(中文引号)，会自动替换为直引号 `“ ”`。非 Claude 模型可以原样输出弯引号。
 
