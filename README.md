@@ -62,7 +62,6 @@ Copy-Item .\* "$HOME\.claude\skills\claude-skill-model-fingerprint\" -Recurse -F
 ## 说明
 
 - 本 Skill 以诊断分析为主，不依赖外部 API。
-- 如果只想要更快的结论，优先使用 `claude-skill-model-fingerprint-fast`。
 - `SKILL.md` 只保留轻量流程；详细规则已拆到 `references/`，按需读取。
 - v2.0 起，核心测试通过 **并行 subagent** 执行，大幅缩短总耗时。
 - 深度测试（数列题、弯引号测试）因消耗大量思考 token，仅在深度审查时启用。
