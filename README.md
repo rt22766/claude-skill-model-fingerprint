@@ -79,6 +79,9 @@ Copy-Item .\* "$HOME\.claude\skills\claude-skill-model-fingerprint\" -Recurse -F
 | 2026-02 | v1.3.0 | 引入条件加载机制，默认只执行核心测试 |
 | 2026-03 | v2.0.0 | **架构重构**：核心测试改用 3 个并行 subagent 执行；新增深度测试：数列递推计算题（答案=5，高耗时高 token）、弯引号输出测试（Claude 全系无法输出弯引号） |
 
+## 各大模型测试
+引用:https://linux.do/t/topic/1626602
+
 ## 深度测试问题说明
 
 ### 数列递推计算题
